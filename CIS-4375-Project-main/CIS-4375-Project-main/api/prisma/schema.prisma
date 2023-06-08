@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+//Models go here
+
+model Customer {
+  id             Int    @id @default(autoincrement()) // may change to id
+  Customer_Fname String @db.VarChar(128)
+  Customer_Lname String @db.VarChar(128)
+  Customer_Phone String @db.VarChar(128)
+  Customer_Email String @db.VarChar(128)
+  order          Cust_Order[] // Specifies there can be many orders for a single customer (Prisma-level)
+  Invoice        Invoice[] // Specifies there can be many invoices for a single customer (Prisma-level)
+}
+
+model User {
+  id         Int    @id @default(autoincrement()) // Changed User_ID to id
+  User_Fname String @db.VarChar(128)
+  User_Lname String @db.VarChar(128)
+  Role       String @db.Char(50)
+  Order      Cust_Order[] // Specifies there can be many orders for a single user (Prisma-level)
+}
+
+model Order_status {
+  id          Int    @id @default(autoincrement())
+  Status_name String @db.VarChar(255)
+  Order       Cust_Order[] // Specifies there can be many orders for a single user (Prisma-level)
+}
+
+model Cust_Order {
+  id                   Int          @id @default(autoincrement())
+  user                 User         @relation(fields: [User_ID], references: [id]) // Does not actually exist in the database. Used to connect Users to Order within Prisma.
+  User_ID              Int // Does Exist in the database
+  customer             Customer     @relation(fields: [Customer_ID], references: [id], onDelete: NoAction) // Does not actually exist in the database. Used to connect Customer to Order within Prisma.
+  Customer_ID          Int // Does Exist in the database
+  Order_date           DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt @default(now()) // May keep?
+  Order_total          Int          @default(0)
+  Order_CompletionDate DateTime     @default(now())
+  order_status_id         Order_status @relation(fields: [Order_status_ID], references: [id]) // Does not actually exist in the database. Used to connect Customer to Order within Prisma.
+  Order_status_ID         Int // Does Exist in the database
+  Invoice_id           Invoice[]    @relation("order_id") 
+  Orderline            Orderline[]
+}
+
+model Invoice{
+  id          Int      @id @default(autoincrement())
+  order_id    Cust_Order    @relation("order_id",fields: [Order_ID], references: [id])//FK for order_id
+  Order_ID    Int
+  customer    Customer @relation(fields: [Customer_ID], references: [id]) //FK for customer_id
+  Customer_ID Int 
+}
+
+model Orderline{
+  id            Int     @id @default(autoincrement())
+  order_id      Cust_Order   @relation(fields: [Order_ID], references: [id], onDelete: Cascade) //FK for order_id
+  Order_ID      Int
+  product_id    Product @relation(fields: [Product_ID], references: [id]) //FK for product_id
+  Product_ID    Int 
+  Product_qty   Int // May need to delete?
+}
+
+model Product{
+  id            Int    @id @default(autoincrement())
+  Product_name  String @db.VarChar(128)
+  Product_price Int 
+  Quantity      Int
+  Volume        Int?
+  Orderline     Orderline[]
+  Productline   Productline[]
+}
+
+model Productline{
+  id              Int @id @default(autoincrement())
+  supply_id       Supply @relation(fields: [Supply_ID], references: [id]) //FK for supply_id
+  Supply_ID       Int
+  product_id      Product @relation(fields: [Product_ID], references: [id]) //FK for product_id
+  Product_ID      Int 
+}
+
+model Supply{
+  id           Int    @id @default(autoincrement())
+  Supply_name  String @db.VarChar(128)
+  Quantity     Int 
+  Vendor_Order Vendor_Order[] // Specifies there can be many orders for a single supply (Prisma-level)
+  Productline  Productline[] 
+}
+
+model Vendor_Order{
+  id                           Int    @id @default(autoincrement())
+  vendor_id                    Vendor @relation(fields: [Vendor_ID], references: [id]) //FK for vendor_id
+  Vendor_ID                    Int
+  supply_id                    Supply @relation(fields: [Supply_ID], references: [id]) //FK for supply_id
+  Supply_ID                    Int
+  unit_id                      Unit @relation(fields: [Unit_ID], references: [id]) //FK for unit_id
+  Unit_ID                      Int
+  Vendor_Order_Quantity        Int
+  Order_Cost                   Int
+  Vendor_Order_Date            DateTime
+  Vendor_Order_CompletionDate  DateTime?
+  vendor_status_id             Vendor_Status @relation(fields: [Vendor_status_ID], references: [id])
+  Vendor_status_ID             Int 
+}
+
+model Unit{
+  id           Int    @id @default(autoincrement())
+  Unit_Name    String @db.VarChar(128)
+  Vendor_Order Vendor_Order[]
+}
+
+model Vendor{
+  id           Int    @id @default(autoincrement()) 
+  Vendor_Name  String @db.VarChar(128)
+  Address_1    String @db.VarChar(128)
+  Address_2    String? @db.VarChar(128)
+  City         String @db.VarChar(128)
+  state_id     State  @relation(fields: [State_ID], references: [id]) //FK relationship to state_id
+  State_ID     Int
+  Country      String @db.VarChar(128)
+  zipcode      Int
+  Vendor_Order Vendor_Order[]
+}
+
+model State{
+  id         Int    @id @default(autoincrement()) 
+  State_Name String @db.VarChar(128)
+  Vendor Vendor[]
+}
+
+model Vendor_Status{
+  id          Int     @id @default(autoincrement())
+  Status_name String  @db.VarChar(255)
+  Vendor_Order  Vendor_Order[]
+}
